@@ -50,13 +50,17 @@ describe('Post endpoints', () => {
       const res = await request(app)
         .get('/api/post')
         .set('Authorization', 'Bearer fake')
-        .query({ search: 'Lesson' });
+        .query({ search: 'Lesson', from: '2026-07-01', to: '2026-09-30' });
 
       expect(res.status).toBe(200);
       expect(res.body.data[0].title).toBe('Lesson');
       expect(res.body.data[0].author).toMatchObject({ name: 'Ana' });
       expect(postService.getAllActivePosts).toHaveBeenCalledWith(
-        expect.objectContaining({ search: 'Lesson' }),
+        expect.objectContaining({
+          search: 'Lesson',
+          from: '2026-07-01',
+          to: '2026-09-30',
+        }),
       );
     });
   });

@@ -105,7 +105,16 @@ async function getAllActivePosts(req, res, next) {
         const limit = req.query.limit || 10;
         const search = req.query.search?.trim() || '';
 
-        const result = await postService.getAllActivePosts({ search, page, limit});
+        const from = String(req.query.from || '').trim();
+        const to = String(req.query.to || '').trim();
+
+        const result = await postService.getAllActivePosts({
+            search,
+            from: from || undefined,
+            to: to || undefined,
+            page,
+            limit,
+        });
 
         return res.status(200).json({
             status: 200,

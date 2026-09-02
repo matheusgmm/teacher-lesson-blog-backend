@@ -1,4 +1,5 @@
 const { CodedApiError } = require('../utils/CodedApiError.util');
+const { resolveCreatedAtFilter } = require('../utils/date-filter.util');
 const postRepository = require('../repositories/post-repository');
 
 
@@ -11,8 +12,9 @@ async function createPost(data, requesterId) {
 }
 
 // open to all users
-async function getAllActivePosts({ search, page = 1, limit = 10 } = {}) {
-    return postRepository.getAllActivePosts({ search, page, limit });
+async function getAllActivePosts({ search, from, to, page = 1, limit = 10 } = {}) {
+    const createdAt = resolveCreatedAtFilter(from, to);
+    return postRepository.getAllActivePosts({ search, createdAt, page, limit });
 }
 
 // open to all users

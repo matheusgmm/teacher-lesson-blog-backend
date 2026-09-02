@@ -70,6 +70,40 @@ describe('post-service', () => {
     });
   });
 
+  describe('getAllActivePosts', () => {
+    it('should forward a created_at range to the repository', async () => {
+      postRepository.getAllActivePosts.mockResolvedValue({
+        data: [],
+        meta: { page: 1, limit: 10, total: 0, totalPages: 1 },
+      });
+
+      await postService.getAllActivePosts({
+        search: 'aula',
+        from: '2026-07-01',
+        to: '2026-07-31',
+        page: 2,
+        limit: 10,
+      });
+
+      expect(postRepository.getAllActivePosts).toHaveBeenCalledWith({
+        search: 'aula',
+        createdAt: {
+          gte: expect.any(Date),
+          lte: expect.any(Date),
+        },
+        page: 2,
+        limit: 10,
+      });
+    });
+
+    it('should reject an inverted date range', async () => {
+      await expect(
+        postService.getAllActivePosts({ from: '2026-08-10', to: '2026-08-01' }),
+      ).rejects.toMatchObject({ code: 'INVALID_DATE_RANGE' });
+      expect(postRepository.getAllActivePosts).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deletePost', () => {
     it('should require an id', async () => {
       await expect(postService.deletePost()).rejects.toMatchObject({

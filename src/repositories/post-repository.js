@@ -35,7 +35,7 @@ async function deletePost(id) {
   });
 }
 
-async function getAllActivePosts({ search, page = 1, limit = 10 } = {}) {
+async function getAllActivePosts({ search, createdAt, page = 1, limit = 10 } = {}) {
   const take = Math.min(Math.max(Number(limit) || 10, 1), 50);
   const currentPage = Math.max(Number(page) || 1, 1);
   const skip = (currentPage - 1) * take;
@@ -48,6 +48,7 @@ async function getAllActivePosts({ search, page = 1, limit = 10 } = {}) {
         { description: { contains: search } },
       ],
     } : {}),
+    ...(createdAt ? { created_at: createdAt } : {}),
   };
 
 

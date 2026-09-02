@@ -581,7 +581,7 @@ paths:
     get:
       tags: [Posts]
       summary: List active posts
-      description: Paginated list with optional search on title/description.
+      description: Paginated list with optional search on title/description and date range on created_at.
       security:
         - BearerAuth: []
       parameters:
@@ -589,6 +589,20 @@ paths:
           name: search
           schema:
             type: string
+        - in: query
+          name: from
+          description: Inclusive start date (`YYYY-MM-DD`, local calendar day).
+          schema:
+            type: string
+            format: date
+            example: '2026-07-01'
+        - in: query
+          name: to
+          description: Inclusive end date (`YYYY-MM-DD`, local calendar day).
+          schema:
+            type: string
+            format: date
+            example: '2026-09-30'
         - in: query
           name: page
           schema:
