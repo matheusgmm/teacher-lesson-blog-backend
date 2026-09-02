@@ -7,9 +7,11 @@ const { CodedApiError } = require('./utils/CodedApiError.util');
 const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
 const { setupSwagger } = require('./docs/swagger');
+const { cors } = require('./middlewares/cors.middleware');
 
 const app = express();
 
+app.use(cors);
 app.use(express.json());
 
 setupSwagger(app);

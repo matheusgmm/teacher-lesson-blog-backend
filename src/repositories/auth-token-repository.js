@@ -6,7 +6,8 @@ const {
 } = require('../utils/Token.util');
 
 async function createAuthToken(data) {
-  const token = data.rememberMe
+  const rememberMe = Boolean(data.rememberMe ?? data.remember_me);
+  const token = rememberMe
     ? generateRememberMeToken(data.owner_id, data.role)
     : generateToken(data.owner_id, data.role);
 
@@ -14,8 +15,8 @@ async function createAuthToken(data) {
     data: {
       token,
       owner_id: data.owner_id,
-      expires_at: getExpirationDate(data.rememberMe),
-      remember_me: data.rememberMe,
+      expires_at: getExpirationDate(rememberMe),
+      remember_me: rememberMe,
     },
   });
 }
