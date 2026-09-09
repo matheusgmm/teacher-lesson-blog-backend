@@ -1,18 +1,32 @@
 const { prisma } = require('../config/prisma');
 
+const POST_PUBLIC_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  status: true,
+  created_at: true,
+  updated_at: true,
+  user_id: true,
+  user: {
+    select: { id: true, name: true, email: true },
+  },
+};
+
 async function createPost(data, requesterId) {
-  return await prisma.post.create({
+  return prisma.post.create({
     data: {
       title: data.title,
       description: data.description,
       user_id: requesterId,
       status: 'PUBLISHED',
     },
+    select: POST_PUBLIC_SELECT,
   });
 }
 
 async function updatePost(id, data) {
-  return await prisma.post.update({
+  return prisma.post.update({
     where: { id },
     data: {
       title: data.title,
@@ -20,12 +34,12 @@ async function updatePost(id, data) {
       status: data.status,
       updated_at: new Date(),
     },
+    select: POST_PUBLIC_SELECT,
   });
 }
 
-
 async function deletePost(id) {
-  return await prisma.post.update({
+  return prisma.post.update({
     where: { id },
     data: {
       status: 'DELETED',
@@ -51,25 +65,13 @@ async function getAllActivePosts({ search, createdAt, page = 1, limit = 10 } = {
     ...(createdAt ? { created_at: createdAt } : {}),
   };
 
-
   const [data, total] = await Promise.all([
     prisma.post.findMany({
       where,
       orderBy: { created_at: 'desc' },
       skip,
       take,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        status: true,
-        created_at: true,
-        updated_at: true,
-        user_id: true,
-        user: {
-          select: { id: true, name: true, email: true }
-        },
-      },
+      select: POST_PUBLIC_SELECT,
     }),
     prisma.post.count({ where }),
   ]);
@@ -81,30 +83,19 @@ async function getAllActivePosts({ search, createdAt, page = 1, limit = 10 } = {
       limit: take,
       total,
       totalPages: Math.ceil(total / take) || 1,
-    }
+    },
   };
 }
 
 async function getActivePostById(id) {
-  return await prisma.post.findUnique({
-    where: { id: Number(id), deleted_at: null },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      status: true,
-      created_at: true,
-      updated_at: true,
-      user_id: true,
-      user: {
-        select: { id: true, name: true, email: true }
-      },
-    },
+  return prisma.post.findFirst({
+    where: { id, deleted_at: null },
+    select: POST_PUBLIC_SELECT,
   });
 }
 
 async function getPostById(id) {
-  return await prisma.post.findUnique({
+  return prisma.post.findUnique({
     where: { id },
     select: {
       id: true,

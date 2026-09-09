@@ -205,9 +205,11 @@ components:
       properties:
         title:
           type: string
+          maxLength: 191
           example: Welcome Back to Class
         description:
           type: string
+          maxLength: 8000
           example: Tips for a good start
 
     UpdatePostRequest:

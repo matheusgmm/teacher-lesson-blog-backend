@@ -28,8 +28,8 @@ model User {
 
 model Post {
   id          Int         @id @default(autoincrement())
-  title       String
-  description String
+  title       String      @db.VarChar(191)
+  description String      @db.Text
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt @default(now())
   deleted_at   DateTime?

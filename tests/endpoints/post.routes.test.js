@@ -120,5 +120,19 @@ describe('Post endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe(4);
     });
+
+    it('should return 404 when the post does not exist', async () => {
+      const { CodedApiError } = require('../../src/utils/CodedApiError.util');
+      postService.getActivePostById.mockRejectedValue(
+        new CodedApiError('POST_NOT_FOUND', 'Post not found', 404),
+      );
+
+      const res = await request(app)
+        .get('/api/post/999')
+        .set('Authorization', 'Bearer fake');
+
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('POST_NOT_FOUND');
+    });
   });
 });

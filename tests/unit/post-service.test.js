@@ -29,6 +29,12 @@ describe('post-service', () => {
         code: 'TITLE_DESCRIPTION_REQUIRED',
       });
     });
+
+    it('should reject a title longer than 191 characters', async () => {
+      await expect(
+        postService.createPost({ title: 'A'.repeat(192), description: 'Conteúdo da aula' }, 1),
+      ).rejects.toMatchObject({ code: 'TITLE_TOO_LONG' });
+    });
   });
 
   describe('updatePost', () => {
@@ -101,6 +107,32 @@ describe('post-service', () => {
         postService.getAllActivePosts({ from: '2026-08-10', to: '2026-08-01' }),
       ).rejects.toMatchObject({ code: 'INVALID_DATE_RANGE' });
       expect(postRepository.getAllActivePosts).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getActivePostById', () => {
+    it('should return the post when it exists', async () => {
+      postRepository.getActivePostById.mockResolvedValue({ id: 4, title: 'Aula' });
+
+      const result = await postService.getActivePostById('4');
+
+      expect(postRepository.getActivePostById).toHaveBeenCalledWith(4);
+      expect(result.id).toBe(4);
+    });
+
+    it('should return 404 when the post does not exist', async () => {
+      postRepository.getActivePostById.mockResolvedValue(null);
+
+      await expect(postService.getActivePostById(999)).rejects.toMatchObject({
+        code: 'POST_NOT_FOUND',
+      });
+    });
+
+    it('should reject an invalid id', async () => {
+      await expect(postService.getActivePostById('abc')).rejects.toMatchObject({
+        code: 'POST_ID_REQUIRED',
+      });
+      expect(postRepository.getActivePostById).not.toHaveBeenCalled();
     });
   });
 
