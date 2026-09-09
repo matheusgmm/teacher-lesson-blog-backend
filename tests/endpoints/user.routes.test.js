@@ -49,12 +49,63 @@ describe('User endpoints', () => {
       const res = await request(app)
         .get('/api/user')
         .set('Authorization', 'Bearer fake-token')
-        .query({ page: 1, limit: 10 });
+        .query({ page: 1, limit: 10, search: 'Ana' });
 
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0]).toMatchObject({ name: 'Ana', email: 'ana@mail.com' });
       expect(res.body.meta.total).toBe(1);
+      expect(userService.getAllActiveUsers).toHaveBeenCalledWith(
+        expect.objectContaining({ search: 'Ana' }),
+      );
+    });
+
+    it('should block USER from listing the community', async () => {
+      const res = await request(app)
+        .get('/api/user')
+        .set('Authorization', 'Bearer fake-token')
+        .set('x-test-role', 'USER');
+
+      expect(res.status).toBe(403);
+      expect(userService.getAllActiveUsers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /api/user', () => {
+    it('should allow an admin to create a user', async () => {
+      getUserByToken.mockResolvedValue({ id: 1, role: 'ADMIN' });
+      userService.createUser.mockResolvedValue({
+        id: 8,
+        name: 'Lia',
+        email: 'lia@mail.com',
+        role: 'USER',
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      const res = await request(app)
+        .post('/api/user')
+        .set('Authorization', 'Bearer fake-token')
+        .set('x-test-role', 'ADMIN')
+        .send({ name: 'Lia', email: 'lia@mail.com', password: '123456', role: 'USER' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data).toMatchObject({ id: 8, name: 'Lia' });
+      expect(userService.createUser).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'lia@mail.com' }),
+        expect.objectContaining({ role: 'ADMIN' }),
+      );
+    });
+
+    it('should block USER from creating accounts', async () => {
+      const res = await request(app)
+        .post('/api/user')
+        .set('Authorization', 'Bearer fake-token')
+        .set('x-test-role', 'USER')
+        .send({ name: 'Lia', email: 'lia@mail.com', password: '123456' });
+
+      expect(res.status).toBe(403);
+      expect(userService.createUser).not.toHaveBeenCalled();
     });
   });
 

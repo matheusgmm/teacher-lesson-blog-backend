@@ -178,8 +178,55 @@ async function seedDemoPosts(preferredAdmin) {
   console.log(`Seeded ${DEMO_POSTS.length} demo posts for ${admin.email}. Total posts: ${total}.`);
 }
 
+async function seedDemoUsers() {
+  const existing = await prisma.user.count({
+    where: { deleted_at: null },
+  });
+
+  if (existing >= 15) {
+    console.log(`Demo users already present (${existing}).`);
+    return;
+  }
+
+  const password = await bcrypt.hash('Aluno@123', 10);
+  const names = [
+    ['Ana Souza', 'ana.souza@teacherlesson.local'],
+    ['Bruno Lima', 'bruno.lima@teacherlesson.local'],
+    ['Carla Mendes', 'carla.mendes@teacherlesson.local'],
+    ['Diego Martins', 'diego.martins@teacherlesson.local'],
+    ['Elisa Rocha', 'elisa.rocha@teacherlesson.local'],
+    ['Fábio Nunes', 'fabio.nunes@teacherlesson.local'],
+    ['Gabriela Pinto', 'gabriela.pinto@teacherlesson.local'],
+    ['Henrique Alves', 'henrique.alves@teacherlesson.local'],
+    ['Isabela Freitas', 'isabela.freitas@teacherlesson.local'],
+    ['João Pedro Ramos', 'joao.ramos@teacherlesson.local'],
+    ['Larissa Castro', 'larissa.castro@teacherlesson.local'],
+    ['Marcelo Vieira', 'marcelo.vieira@teacherlesson.local'],
+    ['Natália Correia', 'natalia.correia@teacherlesson.local'],
+    ['Otávio Borges', 'otavio.borges@teacherlesson.local'],
+    ['Patrícia Gomes', 'patricia.gomes@teacherlesson.local'],
+    ['Renato Barros', 'renato.barros@teacherlesson.local'],
+  ];
+
+  await prisma.user.createMany({
+    data: names.map(([name, email], index) => ({
+      name,
+      email,
+      password,
+      role: 'USER',
+      created_at: new Date(2026, 6, 10 + index, 9, 0, 0),
+      updated_at: new Date(2026, 6, 10 + index, 9, 0, 0),
+    })),
+    skipDuplicates: true,
+  });
+
+  const total = await prisma.user.count({ where: { deleted_at: null } });
+  console.log(`Seeded community members. Total users: ${total}.`);
+}
+
 async function main() {
   const admin = await upsertAdmin();
+  await seedDemoUsers();
   await seedDemoPosts(admin);
 }
 

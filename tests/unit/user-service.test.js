@@ -123,6 +123,7 @@ describe('user-service', () => {
     it('should allow an admin to delete another user', async () => {
       userRepository.getUserById.mockResolvedValue({
         id: 3,
+        role: 'USER',
         deleted_at: null,
       });
       userRepository.deactivateUser.mockResolvedValue({ id: 3 });
@@ -130,6 +131,20 @@ describe('user-service', () => {
       await userService.deleteUser(3, { id: 1, role: 'ADMIN' });
 
       expect(userRepository.deactivateUser).toHaveBeenCalledWith(3);
+    });
+
+    it('should prevent deleting the last administrator', async () => {
+      userRepository.getUserById.mockResolvedValue({
+        id: 3,
+        role: 'ADMIN',
+        deleted_at: null,
+      });
+      userRepository.countActiveByRole.mockResolvedValue(1);
+
+      await expect(
+        userService.deleteUser(3, { id: 1, role: 'ADMIN' }),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(userRepository.deactivateUser).not.toHaveBeenCalled();
     });
   });
 });

@@ -3,6 +3,29 @@ const { toUserResponse, toPaginatedResponse } = require('../utils/helpers.util')
 const { CodedApiError } = require('../utils/CodedApiError.util');
 const userService = require('../services/user-service');
 
+async function createUser(req, res, next) {
+    try {
+        const requester = await getUserByToken(req.headers.authorization?.split(' ')[1]);
+        if (!requester) {
+            throw new CodedApiError('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+
+        const user = await userService.createUser(req.body, requester);
+
+        return res.status(201).json({
+            status: 201,
+            message: 'User created successfully',
+            data: toUserResponse(user),
+        });
+    } catch (error) {
+        return next(
+            error instanceof CodedApiError
+                ? error
+                : new CodedApiError('CREATE_USER_FAILED', error.message, 500),
+        );
+    }
+}
+
 async function updateUser(req, res, next) {
     try {
         const data = req.body;
@@ -101,4 +124,4 @@ async function getAllActiveUsers(req, res, next) {
     }
 }
 
-module.exports = { updateUser, deleteUser, getUserById, getAllActiveUsers };
+module.exports = { createUser, updateUser, deleteUser, getUserById, getAllActiveUsers };

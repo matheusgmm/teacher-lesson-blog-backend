@@ -46,11 +46,15 @@ function resolveCreateRole(data, requester) {
 }
 
 async function createUser(data, requester = null) {
-  if (!data.name || !data.email || !data.password) {
+  const name = String(data.name ?? '').trim();
+  const email = String(data.email ?? '').trim().toLowerCase();
+  const password = String(data.password ?? '');
+
+  if (!name || !email || !password) {
     throw new CodedApiError("NAME_EMAIL_PASSWORD_REQUIRED", 'Name, email and password are required', 400);
   }
 
-  const emailExists = await findUserByEmail(data.email);
+  const emailExists = await findUserByEmail(email);
   if (emailExists) {
     throw new CodedApiError("EMAIL_ALREADY_EXISTS", 'Email already exists', 400);
   }
@@ -58,9 +62,9 @@ async function createUser(data, requester = null) {
   const role = resolveCreateRole(data, requester);
 
   return userRepository.createUser({
-    name: data.name,
-    email: data.email,
-    password: data.password,
+    name,
+    email,
+    password,
     role,
   });
 }
@@ -93,10 +97,19 @@ async function updateUser(targetId, data, requester) {
   }
 
   if (allowed.email !== undefined) {
+    allowed.email = String(allowed.email).trim().toLowerCase();
     const emailExists = await findUserByEmail(allowed.email);
     if (emailExists && emailExists.id !== id) {
       throw new CodedApiError("EMAIL_ALREADY_EXISTS", 'Email already exists', 400);
     }
+  }
+
+  if (allowed.name !== undefined) {
+    allowed.name = String(allowed.name).trim();
+  }
+
+  if (allowed.password !== undefined && allowed.password === '') {
+    delete allowed.password;
   }
 
   return userRepository.updateUser(id, allowed);
@@ -124,6 +137,13 @@ async function deleteUser(targetId, requester) {
   const alreadyExists = await findUserById(id);
   if (!alreadyExists || alreadyExists.deleted_at) {
     throw new CodedApiError("USER_NOT_FOUND", 'User not found', 404);
+  }
+
+  if (alreadyExists.role === 'ADMIN') {
+    const adminCount = await userRepository.countActiveByRole('ADMIN');
+    if (adminCount <= 1) {
+      throw new CodedApiError('FORBIDDEN', 'Cannot delete the last administrator', 403);
+    }
   }
 
   return userRepository.deactivateUser(id);

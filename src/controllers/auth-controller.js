@@ -40,7 +40,7 @@ async function login(req, res, next) {
         }
 
         const user = await userService.findUserByEmail(email);
-        if (!user) {
+        if (!user || user.deleted_at) {
             throw new CodedApiError("INVALID_CREDENTIALS", 'Invalid login credentials', 401);
         }
 

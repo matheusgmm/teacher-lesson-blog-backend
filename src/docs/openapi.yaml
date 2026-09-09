@@ -422,7 +422,7 @@ paths:
     get:
       tags: [Users]
       summary: List active users
-      description: Paginated list with optional search on name/email.
+      description: Paginated list with optional search on name/email. Admins only.
       security:
         - BearerAuth: []
       parameters:
@@ -455,6 +455,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+    post:
+      tags: [Users]
+      summary: Create a user (admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessUser'
+        '400':
+          description: Validation error or email already exists
+        '403':
+          description: Forbidden (admin only)
     patch:
       tags: [Users]
       summary: Update authenticated user (self)
@@ -511,6 +533,7 @@ paths:
     get:
       tags: [Users]
       summary: Get user by id
+      description: Admins only.
       security:
         - BearerAuth: []
       parameters:

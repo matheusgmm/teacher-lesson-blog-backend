@@ -1,6 +1,15 @@
 const { prisma } = require('../config/prisma');
 const bcrypt = require('bcryptjs');
 
+const USER_PUBLIC_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  created_at: true,
+  updated_at: true,
+};
+
 async function createUser(data) {
   return prisma.user.create({
     data: {
@@ -9,6 +18,7 @@ async function createUser(data) {
       password: await bcrypt.hash(data.password, 10),
       role: data.role || 'USER',
     },
+    select: USER_PUBLIC_SELECT,
   });
 }
 
@@ -29,8 +39,12 @@ async function findByEmail(email) {
 }
 
 async function getUserById(id) {
-  return await prisma.user.findUnique({
-    where: { id },
+  return prisma.user.findFirst({
+    where: { id, deleted_at: null },
+    select: {
+      ...USER_PUBLIC_SELECT,
+      deleted_at: true,
+    },
   });
 }
 
@@ -47,6 +61,7 @@ async function updateUser(id, data) {
   return prisma.user.update({
     where: { id },
     data: updateData,
+    select: USER_PUBLIC_SELECT,
   });
 }
 
@@ -78,17 +93,10 @@ async function getAllActiveUsers({ search, page = 1, limit = 10 } = {}) {
   const [data, total] = await Promise.all([
     prisma.user.findMany({
       where, 
-      orderBy: { created_at: 'desc' },
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       skip,
       take,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        created_at: true,
-        updated_at: true,
-      },
+      select: USER_PUBLIC_SELECT,
     }),
     prisma.user.count({
       where,
@@ -104,6 +112,12 @@ async function getAllActiveUsers({ search, page = 1, limit = 10 } = {}) {
       totalPages: Math.ceil(total / take) || 1,
     }
   };
+}
+
+async function countActiveByRole(role) {
+  return prisma.user.count({
+    where: { role, deleted_at: null },
+  });
 }
 
 async function getUserAndPosts(id) {
@@ -123,4 +137,5 @@ module.exports = {
   deactivateUser,
   getAllActiveUsers,
   getUserAndPosts,
+  countActiveByRole,
 };
