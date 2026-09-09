@@ -48,6 +48,16 @@ async function getUserById(id) {
   });
 }
 
+async function getUserCredentialsById(id) {
+  return prisma.user.findFirst({
+    where: { id, deleted_at: null },
+    select: {
+      id: true,
+      password: true,
+    },
+  });
+}
+
 async function updateUser(id, data) {
   const updateData = {};
 
@@ -133,6 +143,7 @@ module.exports = {
   createUser,
   findByEmail,
   getUserById,
+  getUserCredentialsById,
   updateUser,
   deactivateUser,
   getAllActiveUsers,

@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/user-repository');
 const { CodedApiError } = require('../utils/CodedApiError.util');
 const { pick } = require('../utils/helpers.util');
@@ -110,6 +111,32 @@ async function updateUser(targetId, data, requester) {
 
   if (allowed.password !== undefined && allowed.password === '') {
     delete allowed.password;
+  }
+
+  if (allowed.password && isSelf) {
+    const currentPassword = String(data.currentPassword ?? '');
+
+    if (!currentPassword) {
+      throw new CodedApiError(
+        'CURRENT_PASSWORD_REQUIRED',
+        'Current password is required',
+        400,
+      );
+    }
+
+    const credentials = await userRepository.getUserCredentialsById(id);
+    if (!credentials?.password) {
+      throw new CodedApiError('USER_NOT_FOUND', 'User not found', 404);
+    }
+
+    const matches = await bcrypt.compare(currentPassword, credentials.password);
+    if (!matches) {
+      throw new CodedApiError(
+        'CURRENT_PASSWORD_INVALID',
+        'Current password is invalid',
+        400,
+      );
+    }
   }
 
   return userRepository.updateUser(id, allowed);

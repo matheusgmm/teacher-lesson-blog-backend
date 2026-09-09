@@ -1,5 +1,6 @@
 jest.mock('../../src/repositories/user-repository');
 
+const bcrypt = require('bcryptjs');
 const userRepository = require('../../src/repositories/user-repository');
 const userService = require('../../src/services/user-service');
 const { CodedApiError } = require('../../src/utils/CodedApiError.util');
@@ -110,6 +111,57 @@ describe('user-service', () => {
       await expect(
         userService.updateUser(3, { name: 'Hack' }, { id: 2, role: 'USER' }),
       ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    });
+
+    it('should require the current password when self changes password', async () => {
+      userRepository.getUserById.mockResolvedValue(existing);
+
+      await expect(
+        userService.updateUser(2, { password: 'newpass' }, { id: 2, role: 'USER' }),
+      ).rejects.toMatchObject({ code: 'CURRENT_PASSWORD_REQUIRED' });
+    });
+
+    it('should reject an invalid current password', async () => {
+      userRepository.getUserById.mockResolvedValue(existing);
+      userRepository.getUserCredentialsById.mockResolvedValue({
+        id: 2,
+        password: await bcrypt.hash('oldpass', 4),
+      });
+
+      await expect(
+        userService.updateUser(
+          2,
+          { password: 'newpass', currentPassword: 'wrong' },
+          { id: 2, role: 'USER' },
+        ),
+      ).rejects.toMatchObject({ code: 'CURRENT_PASSWORD_INVALID' });
+    });
+
+    it('should update password when the current password matches', async () => {
+      userRepository.getUserById.mockResolvedValue(existing);
+      userRepository.getUserCredentialsById.mockResolvedValue({
+        id: 2,
+        password: await bcrypt.hash('oldpass', 4),
+      });
+      userRepository.updateUser.mockResolvedValue(existing);
+
+      await userService.updateUser(
+        2,
+        { password: 'newpass', currentPassword: 'oldpass' },
+        { id: 2, role: 'USER' },
+      );
+
+      expect(userRepository.updateUser).toHaveBeenCalledWith(2, { password: 'newpass' });
+    });
+
+    it('should allow an admin to reset another user password without current password', async () => {
+      userRepository.getUserById.mockResolvedValue(existing);
+      userRepository.updateUser.mockResolvedValue(existing);
+
+      await userService.updateUser(2, { password: 'newpass' }, { id: 1, role: 'ADMIN' });
+
+      expect(userRepository.getUserCredentialsById).not.toHaveBeenCalled();
+      expect(userRepository.updateUser).toHaveBeenCalledWith(2, { password: 'newpass' });
     });
   });
 

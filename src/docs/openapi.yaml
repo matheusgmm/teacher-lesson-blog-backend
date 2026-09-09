@@ -194,6 +194,10 @@ components:
         password:
           type: string
           format: password
+        currentPassword:
+          type: string
+          format: password
+          description: Required when the authenticated user changes their own password.
         role:
           type: string
           enum: [ADMIN, USER]
@@ -480,7 +484,7 @@ paths:
     patch:
       tags: [Users]
       summary: Update authenticated user (self)
-      description: Updates the logged-in user. Non-admins cannot change `role`.
+      description: Updates the logged-in user. Non-admins cannot change `role`. Changing `password` requires `currentPassword`.
       security:
         - BearerAuth: []
       requestBody:
