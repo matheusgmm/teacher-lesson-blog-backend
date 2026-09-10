@@ -15,8 +15,8 @@ info:
     3. Click **Authorize** in Swagger UI and paste: `Bearer <token>` (or only the token if the UI adds the prefix).
 
     ## Roles
-    - **USER** — self-service profile updates; read posts/users.
-    - **ADMIN** — manage other users, create/update/delete posts, create users with a custom role.
+    - **USER** — self-service profile updates; read posts; comment on lessons.
+    - **ADMIN** — manage other users, create/update/delete posts, moderate comments, create users with a custom role.
 
     ## Seeded admin
     After running `npm run db:seed`, an admin account is available (defaults):
@@ -43,6 +43,8 @@ tags:
     description: User profile and administration
   - name: Posts
     description: Lesson posts (CRUD)
+  - name: Comments
+    description: Comments on a lesson (authenticated users)
 
 components:
   securitySchemes:
@@ -276,6 +278,74 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Post'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    CommentAuthor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, USER]
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+          maxLength: 1000
+        post_id:
+          type: integer
+        user_id:
+          type: integer
+        author:
+          $ref: '#/components/schemas/CommentAuthor'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateCommentRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 3
+          maxLength: 1000
+          example: Gostei da sequência. Vou aplicar na terça.
+
+    SuccessComment:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 201
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Comment'
+
+    SuccessCommentsPage:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
 
@@ -768,3 +838,126 @@ paths:
       responses:
         '200':
           description: Post deleted
+
+  /api/post/{id}/comments:
+    get:
+      tags: [Comments]
+      summary: List comments of a post
+      description: Paginated, newest first. Only active comments of an active post. Any authenticated user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Comments page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessCommentsPage'
+        '404':
+          description: Post not found
+    post:
+      tags: [Comments]
+      summary: Create a comment
+      description: Any authenticated user may comment on an active post.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessComment'
+        '400':
+          description: Validation error
+        '404':
+          description: Post not found
+
+  /api/post/{id}/comments/{commentId}:
+    patch:
+      tags: [Comments]
+      summary: Update a comment
+      description: Only the author may edit. Admins cannot rewrite someone else's comment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessComment'
+        '403':
+          description: Forbidden (not the author)
+        '404':
+          description: Comment or post not found
+    delete:
+      tags: [Comments]
+      summary: Soft-delete a comment
+      description: Author or admin. Removed comments leave the thread.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comment deleted
+        '403':
+          description: Forbidden
+        '404':
+          description: Comment or post not found

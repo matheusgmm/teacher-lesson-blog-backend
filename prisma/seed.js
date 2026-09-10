@@ -224,10 +224,70 @@ async function seedDemoUsers() {
   console.log(`Seeded community members. Total users: ${total}.`);
 }
 
+async function seedDemoComments() {
+  const existing = await prisma.comment.count({
+    where: { deleted_at: null },
+  });
+
+  if (existing >= 8) {
+    console.log(`Demo comments already present (${existing}).`);
+    return;
+  }
+
+  const post = await prisma.post.findFirst({
+    where: { deleted_at: null },
+    orderBy: { created_at: 'desc' },
+    select: { id: true, title: true },
+  });
+
+  if (!post) {
+    console.log('No posts found; skipping demo comments.');
+    return;
+  }
+
+  const members = await prisma.user.findMany({
+    where: { deleted_at: null },
+    orderBy: { id: 'asc' },
+    take: 6,
+    select: { id: true, name: true },
+  });
+
+  if (members.length === 0) {
+    console.log('No users found; skipping demo comments.');
+    return;
+  }
+
+  const notes = [
+    'Gostei da sequência. Vou aplicar na terça com o 6º ano.',
+    'O combinado da leitura compartilhada funcionou bem na minha turma.',
+    'Dá para adaptar o roteiro para o 8º ano sem perder o objetivo.',
+    'Valeu o lembrete do tempo de fala. A turma ficou mais organizada.',
+    'Posso usar o mesmo planejamento na oficina de escrita?',
+    'A devolutiva para as famílias ficou objetiva. Obrigada pelo modelo.',
+  ];
+
+  await prisma.comment.createMany({
+    data: notes.map((content, index) => {
+      const author = members[index % members.length];
+      return {
+        content,
+        post_id: post.id,
+        user_id: author.id,
+        created_at: new Date(2026, 8, 1 + index, 10 + index, 15, 0),
+        updated_at: new Date(2026, 8, 1 + index, 10 + index, 15, 0),
+      };
+    }),
+  });
+
+  const total = await prisma.comment.count({ where: { deleted_at: null } });
+  console.log(`Seeded comments on “${post.title}”. Total comments: ${total}.`);
+}
+
 async function main() {
   const admin = await upsertAdmin();
   await seedDemoUsers();
   await seedDemoPosts(admin);
+  await seedDemoComments();
 }
 
 main()

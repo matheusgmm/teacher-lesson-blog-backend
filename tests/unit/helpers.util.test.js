@@ -2,6 +2,7 @@ const {
   pick,
   toUserResponse,
   toPostResponse,
+  toCommentResponse,
   toPaginatedResponse,
 } = require('../../src/utils/helpers.util');
 
@@ -75,6 +76,31 @@ describe('helpers.util', () => {
         created_at: '2026-01-01',
         updated_at: '2026-01-02',
       });
+    });
+  });
+
+  describe('toCommentResponse', () => {
+    it('should map the comment with a public author', () => {
+      const comment = {
+        id: 7,
+        content: 'Boa aula.',
+        post_id: 4,
+        user_id: 2,
+        created_at: '2026-01-01',
+        updated_at: '2026-01-02',
+        user: { id: 2, name: 'Ana', role: 'USER', email: 'ana@mail.com' },
+      };
+
+      expect(toCommentResponse(comment)).toEqual({
+        id: 7,
+        content: 'Boa aula.',
+        post_id: 4,
+        user_id: 2,
+        author: { id: 2, name: 'Ana', role: 'USER' },
+        created_at: '2026-01-01',
+        updated_at: '2026-01-02',
+      });
+      expect(toCommentResponse(comment).author).not.toHaveProperty('email');
     });
   });
 

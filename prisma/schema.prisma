@@ -21,6 +21,7 @@ model User {
   deleted_at DateTime? 
   role      Role          @default(USER)
   posts Post[]
+  comments Comment[]
   authTokens AuthToken[]
 
   @@map("user")
@@ -35,9 +36,26 @@ model Post {
   deleted_at   DateTime?
   user_id      Int
   user        User        @relation(fields: [user_id], references: [id])
+  comments    Comment[]
   status      PostStatus  @default(DRAFT)
 
   @@map("post")
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  content    String    @db.VarChar(1000)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt @default(now())
+  deleted_at DateTime?
+  post_id    Int
+  user_id    Int
+  post       Post      @relation(fields: [post_id], references: [id])
+  user       User      @relation(fields: [user_id], references: [id])
+
+  @@index([post_id, deleted_at, created_at])
+  @@index([user_id])
+  @@map("comment")
 }
 
 

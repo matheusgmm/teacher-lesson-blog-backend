@@ -53,6 +53,26 @@ function toPostsResponse(posts = []) {
   return posts.map(toPostResponse);
 }
 
+function toCommentResponse(comment) {
+  if (!comment) return null;
+
+  return {
+    id: comment.id,
+    content: comment.content,
+    post_id: comment.post_id,
+    user_id: comment.user_id,
+    author: comment.user
+      ? {
+          id: comment.user.id,
+          name: comment.user.name,
+          role: comment.user.role,
+        }
+      : undefined,
+    created_at: comment.created_at,
+    updated_at: comment.updated_at,
+  };
+}
+
 function toPaginatedResponse({ data, meta }, mapItem) {
   return {
     data: mapItem ? data.map(mapItem) : data,
@@ -67,5 +87,6 @@ module.exports = {
   toAuthorResponse,
   toPostResponse,
   toPostsResponse,
+  toCommentResponse,
   toPaginatedResponse,
 };
